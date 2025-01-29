@@ -1,35 +1,91 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import {FC, ReactNode, useCallback, useState} from "react";
 
-function App() {
-  const [count, setCount] = useState(0)
-
-  return (
-    <>
-      <div>
-        <a href="https://vitejs.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
+type Param = {
+  id: number
+  name: string
+  type: "string" // | "number" | "list"
 }
 
-export default App
+type ParamValue = {
+  paramId: number
+  value: string
+}
+
+type Model = {
+  paramValues: ParamValue[]
+}
+
+type Props = {
+  params: Param[]
+  model: Model
+}
+
+export const App = () => {
+  const params: Param[] = [
+    { id: 1, name: "Назначение", type: 'string' },
+    { id: 2, name: "Длина", type: 'string' },
+  ];
+
+  const model: Model = {
+    paramValues: [
+      { paramId: 1, value: "повседневное" },
+      { paramId: 2, value: "макси" },
+    ],
+  };
+
+  return <ParamEditor params={params} model={model} />
+}
+
+
+const getParamsMap = (params: ParamValue[]) => {
+  return new Map(params.map(({ paramId, value }) => [paramId, value]))
+}
+
+const ParamEditor: FC<Props> = ({ params, model }) => {
+  const [paramValues, setParamValues] = useState<Map<number, string>> (
+    getParamsMap(model.paramValues)
+  );
+
+  const getModel = (): Model => {
+    return {
+      paramValues: Array.from(paramValues, ([paramId, value]) => ({
+        paramId,
+        value,
+      }))
+    }
+  };
+
+  const renderParamElement = useCallback((param: Param) => {
+    const handleChange = (paramId: number, value: string) => {
+      setParamValues(prev => new Map(prev).set(paramId, value));
+    };
+
+    const paramElementsMap: Record<Param["type"], ReactNode> =  {
+      string: (
+        <input
+          type="text"
+          value={paramValues.get(param.id) || ''}
+          onChange={(e) => handleChange(param.id, e.target.value)}
+        />
+      ),
+      // number: <input type="number" />,
+      // list: <select>{list.map(item => <option key={item}>{item}</option>)}</select>
+    }
+
+    return paramElementsMap[param.type] || null
+  }, [paramValues]);
+
+  return (
+    <div>
+      <h2>Редактор параметров</h2>
+        {params.map((param) => (
+          <div key={param.id}>
+              {param.name}:
+              {renderParamElement(param)}
+            </div>
+          )
+        )}
+      <button onClick={() => console.log(getModel())}>Show Model</button>
+    </div>
+  );
+};
